@@ -17,11 +17,16 @@ stringstream ss;
 #endif
 
 
+unsigned int change_count(const vector<unsigned int>& coins, unsigned int amount) {
+  // TODO greedy change
+}
+
 #ifdef TEST
 
 
 bool test1() {
- 
+  vector<unsigned int> coins{1, 5, 10};
+  return change_count(coins, 2) == 2;
 }
 
 #endif
