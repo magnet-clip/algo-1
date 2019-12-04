@@ -13,51 +13,106 @@ using namespace std;
 #ifdef TEST
 stringstream ss;
 #define ECHO(str) (ss << (str) << endl)
+#define ECHO_FLOAT(precision, str) (ss << fixed << setprecision(precision) << (str) << endl)
 #define FLUSH() ss.clear();
 #else
 #define ECHO(str) (cout << (str) << endl)
+#define ECHO_FLOAT(precision, str) (cout <<  fixed << setprecision(precision) << (str) << endl)
 #endif
 
-unsigned int _change(priority_queue<unsigned int>& coins, unsigned int amount) {
-  unsigned int count = 0;
-  while (!coins.empty() && amount > 0) {
-    // cout << "Amount to change left: " << amount << " and current coin is " << coins.top() << endl;
-    if (coins.top() <= amount) {
-      amount -= coins.top();
-      count++;
-    } else {
-      coins.pop();
-    }
+class item {
+public:
+  item(uint16_t v, uint16_t w) : weight(w), value(v) {
+    r = (float)value/(float)weight;
   }
-    
-  // cout << "Amount to change left: " << amount << " and number of coins spent is " << count << endl;
 
-  if (amount == 0) {
-    return count;
-  } else {
-    return 0;
+  float R() const {
+    return r;
   }
+
+  uint16_t W() const {
+    return weight;
+  }
+
+  uint16_t V() const {
+    return value;
+  }
+
+private:
+  uint16_t weight;
+  uint16_t value;
+  float r;
+};
+
+bool operator<(const item& i1, const item& i2) {
+  return i1.R() < i2.R();
 }
 
-unsigned int change_count(const vector<unsigned int>& coins, unsigned int amount) {
-  priority_queue<unsigned int> queue;
-  for (const auto& coin: coins) {
-    queue.push(coin);
+ostream& operator<<(ostream& stream, const item& i) {
+  return stream << "V: " << i.V() << "; W: " << i.W() << "; R: " << i.R();
+}
+
+void max_value(vector<string> commands) {
+  uint16_t n;
+  uint32_t W;
+  { 
+    stringstream command_stream(commands[0]);
+    command_stream >> n >> W;
   }
-  return _change(queue, amount);
+
+  priority_queue<item> items;
+  for (auto i = 0; i < n; i++) {
+    uint16_t w, v;
+    stringstream command_stream(commands[i+1]);
+    command_stream >> v >> w;
+    items.push({v, w});
+  }
+  auto value = 0.0f;
+
+  while (!items.empty()) {
+    const auto& el = items.top();
+    // cout << "Making use of item " << el << endl;
+    if (W == 0) {
+      // cout << "W = 0, leaving" << endl;
+      break;
+    }
+    const auto available_weight = el.W() < W ? el.W() : W;
+    // cout << "Free space: " << available_weight << endl;
+    value += available_weight * el.R();
+    W -= available_weight;
+    items.pop();
+  }
+  ECHO_FLOAT(4, value);
 }
 
 #ifdef TEST
+bool compare(vector<string> output) {
+  for (const auto &item : output) {
+    string str;
+    if (ss.eof()) {
+      cout << "ss ended";
+      return false;
+    }
+    getline(ss, str);
+    if (str != item) {
+      cout << str << " != " << item << endl;
+      return false;
+    } else {
+      cout << "[" << str << "] == [" << item << "]" << endl;
+    }
+  }
+  return true;
+}
 
 
 bool test1() {
-  vector<unsigned int> coins{1, 5, 10};
-  return change_count(coins, 6) == 2;
+  max_value({"3 50", "60 20", "100 50", "120 30"});
+  return compare({"180.0000"});
 }
 
 bool test2() {
-  vector<unsigned int> coins{1, 5, 10};
-  return change_count(coins, 28) == 6;
+  max_value({"1 10", "500 30"});
+  return compare({"166.6667"});
 }
 
 
@@ -88,10 +143,14 @@ int main() {
   return 0;
 
 #else
-  vector<unsigned int> coins{1, 5, 10};
-  unsigned int amount;
-  cin >> amount;
-  cout << change_count(coins, amount) << endl;
+  vector<string> commands;
+  string command;
+  while (getline(cin, command)) {
+    commands.push_back(command);
+  }
+
+  max_value(commands);
+
   return 0;
 #endif
 }
