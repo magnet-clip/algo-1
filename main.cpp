@@ -8,7 +8,7 @@
 #include <vector>
 using namespace std;
 
-//#define TEST
+// #define TEST
 
 #ifdef TEST
 stringstream ss;
@@ -22,26 +22,26 @@ stringstream ss;
 
 class item {
 public:
-  item(uint16_t v, uint16_t w) : weight(w), value(v) {
-    r = (float)value/(float)weight;
+  item(int v, int w) : weight(w), value(v) {
+    r = (double)value/(double)weight;
   }
 
-  float R() const {
+  double R() const {
     return r;
   }
 
-  uint16_t W() const {
+  int W() const {
     return weight;
   }
 
-  uint16_t V() const {
+  int V() const {
     return value;
   }
 
 private:
-  uint16_t weight;
-  uint16_t value;
-  float r;
+  int weight;
+  int value;
+  double r;
 };
 
 bool operator<(const item& i1, const item& i2) {
@@ -53,8 +53,8 @@ ostream& operator<<(ostream& stream, const item& i) {
 }
 
 void max_value(vector<string> commands) {
-  uint16_t n;
-  uint32_t W;
+  int n;
+  int W;
   { 
     stringstream command_stream(commands[0]);
     command_stream >> n >> W;
@@ -62,12 +62,12 @@ void max_value(vector<string> commands) {
 
   priority_queue<item> items;
   for (auto i = 0; i < n; i++) {
-    uint16_t w, v;
+    int w, v;
     stringstream command_stream(commands[i+1]);
     command_stream >> v >> w;
     items.push({v, w});
   }
-  auto value = 0.0f;
+  auto value = 0.0;
 
   while (!items.empty()) {
     const auto& el = items.top();
@@ -82,7 +82,7 @@ void max_value(vector<string> commands) {
     W -= available_weight;
     items.pop();
   }
-  ECHO_FLOAT(4, value);
+  ECHO_FLOAT(10, value);
 }
 
 #ifdef TEST
