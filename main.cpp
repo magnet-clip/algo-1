@@ -1,97 +1,175 @@
 #include <algorithm>
-#include <iomanip>
+#include <climits>
+#include <exception>
 #include <iostream>
 #include <map>
 #include <set>
-#include <queue>
 #include <sstream>
+#include <string>
 #include <vector>
+
 using namespace std;
 
-//#define TEST
+template <class T>
+ostream& operator<<(ostream& os, const set<T>& s) {
+  os << "{";
+  bool first = true;
+  for (const auto& x : s) {
+    if (!first) {
+      os << ", ";
+    }
+    first = false;
+    os << x;
+  }
+  return os << "}";
+}
 
-#ifdef TEST
-stringstream ss;
-#define ECHO(str) (ss << (str) << endl)
-#define FLUSH() ss.clear();
-#else
-#define ECHO(str) (cout << (str) << endl)
-#endif
+template <class K, class V>
+ostream& operator<<(ostream& os, const map<K, V>& m) {
+  os << "{";
+  bool first = true;
+  for (const auto& kv : m) {
+    if (!first) {
+      os << ", ";
+    }
+    first = false;
+    os << kv.first << ": " << kv.second;
+  }
+  return os << "}";
+}
 
-unsigned int _change(priority_queue<unsigned int>& coins, unsigned int amount) {
-  unsigned int count = 0;
-  while (!coins.empty() && amount > 0) {
-    // cout << "Amount to change left: " << amount << " and current coin is " << coins.top() << endl;
-    if (coins.top() <= amount) {
-      amount -= coins.top();
-      count++;
-    } else {
-      coins.pop();
+template <class T, class U>
+void AssertEqual(const T& t, const U& u, const string& hint) {
+  if (t != u) {
+    ostringstream os;
+    os << "Assertion failed: " << t << " != " << u << " hint: " << hint;
+    throw runtime_error(os.str());
+  }
+}
+
+inline void Assert(bool b, const string& hint) { AssertEqual(b, true, hint); }
+
+class TestRunner {
+ public:
+  template <class TestFunc>
+  void RunTest(TestFunc func, const string& test_name) {
+    try {
+      func();
+      cerr << test_name << " OK" << endl;
+    } catch (runtime_error& e) {
+      ++fail_count;
+      cerr << test_name << " fail: " << e.what() << endl;
     }
   }
-    
-  // cout << "Amount to change left: " << amount << " and number of coins spent is " << count << endl;
 
-  if (amount == 0) {
-    return count;
-  } else {
-    return 0;
+  ~TestRunner() {
+    if (fail_count > 0) {
+      cerr << fail_count << " unit tests failed. Terminate" << endl;
+      exit(1);
+    }
   }
-}
 
-unsigned int change_count(const vector<unsigned int>& coins, unsigned int amount) {
-  priority_queue<unsigned int> queue;
-  for (const auto& coin: coins) {
-    queue.push(coin);
+ private:
+  int fail_count = 0;
+};
+
+struct Segment {
+  int start, end;
+};
+
+bool operator<(const Segment& a, const Segment& b) { return a.start < b.start; }
+
+vector<int> optimal_points(vector<Segment>& segments) {
+  vector<int> points;
+
+  sort(segments.begin(), segments.end());
+  size_t i = 0;
+  while (i < segments.size()) {
+    auto containing_segment = segments[i];
+    while (++i < segments.size()) {
+      if (segments[i].end > containing_segment.end) break;
+    }
+    points.push_back(containing_segment.end);
+
+    // we arrived to the first segment which sticks out from the containing
+    // case 1: it's partially under current => skip it
+    // case 2: it's completely out of current => use it as new containing
+    // segment
+    if (segments[i].start <= containing_segment.end) {
+      i++;
+    }
   }
-  return _change(queue, amount);
+  return points;
 }
 
-#ifdef TEST
-
-
-bool test1() {
-  vector<unsigned int> coins{1, 5, 10};
-  return change_count(coins, 6) == 2;
+void TestNoSegments() {
+  vector<Segment> empty;
+  AssertEqual(optimal_points(empty).size(), 0, "0");
 }
 
-bool test2() {
-  vector<unsigned int> coins{1, 5, 10};
-  return change_count(coins, 28) == 6;
+void TestOneSegment() {
+  vector<Segment> one{{1, 2}};
+  AssertEqual(optimal_points(one).size(), 1, "{1,2}");
+
+  vector<Segment> two{{1, 1}};
+  AssertEqual(optimal_points(two).size(), 1, "{1,1}");
 }
 
+void TestTwoSegments() {
+  vector<Segment> a{{1, 2}, {1, 2}};
+  AssertEqual(optimal_points(a).size(), 1, "Two equivalent segments");
 
-#endif
+  vector<Segment> b{{1, 2}, {3, 4}};
+  AssertEqual(optimal_points(b).size(), 2, "Two non-overlapping segments");
+
+  vector<Segment> c{{1, 3}, {2, 4}};
+  AssertEqual(optimal_points(c).size(), 1, "Two overlapping segments");
+
+  vector<Segment> d{{1, 3}, {3, 4}};
+  AssertEqual(optimal_points(d).size(), 1,
+              "Two segments overlapping in single point");
+
+  vector<Segment> e{{2, 4}, {1, 3}};
+  AssertEqual(optimal_points(e).size(), 1, "Two overlapping unsorted segments");
+}
+
+void TestThreeSegments() {
+  vector<Segment> a{{1, 6}, {2, 5}, {3, 4}};
+  AssertEqual(optimal_points(a).size(), 1, "Three one in another");
+
+  vector<Segment> b{{2, 5}, {1, 6}, {3, 4}};
+  AssertEqual(optimal_points(b).size(), 1, "Three one in another unsorted");
+
+  vector<Segment> c{{2, 5}, {3, 7}, {4, 5}};
+  AssertEqual(optimal_points(c).size(), 1,
+              "Three segments, second sticks out and third in second");
+
+  vector<Segment> d{{2, 4}, {3, 7}, {5, 6}};
+  AssertEqual(
+      optimal_points(d).size(), 1,
+      "Three segments, second sticks out and third in second but out of first");
+}
+
+void RunAllTests() {
+  TestRunner runner;
+  runner.RunTest(TestNoSegments, "No segments");
+  runner.RunTest(TestOneSegment, "One segment");
+  runner.RunTest(TestTwoSegments, "Two segments");
+  runner.RunTest(TestThreeSegments, "Three segments");
+}
 
 int main() {
-#ifdef TEST
-  auto tests = {test1, test2};
-  auto i = 0;
-  bool failed = false;
-  for (auto test : tests) {
-    i++;
-    if (!test()) {
-      cout << "TEST " << i << " FAILED" << endl;
-      failed = true;
-    } else {
-      cout << "TEST " << i << " OK" << endl;
-    }
-    FLUSH();
+  RunAllTests();
+
+  int n;
+  std::cin >> n;
+  vector<Segment> segments(n);
+  for (size_t i = 0; i < segments.size(); ++i) {
+    std::cin >> segments[i].start >> segments[i].end;
   }
-
-  if (failed) {
-    cout << "SOME TESTS FAILED" << endl;
-  } else {
-    cout << "ALL TESTS PASSED" << endl;
+  vector<int> points = optimal_points(segments);
+  std::cout << points.size() << "\n";
+  for (size_t i = 0; i < points.size(); ++i) {
+    std::cout << points[i] << " ";
   }
-
-  return 0;
-
-#else
-  vector<unsigned int> coins{1, 5, 10};
-  unsigned int amount;
-  cin >> amount;
-  cout << change_count(coins, amount) << endl;
-  return 0;
-#endif
 }
