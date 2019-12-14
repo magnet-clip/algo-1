@@ -87,17 +87,15 @@ vector<int> optimal_points(vector<Segment>& segments) {
   while (i < segments.size()) {
     auto containing_segment = segments[i];
     while (++i < segments.size()) {
-      if (segments[i].end > containing_segment.end) break;
+      if (segments[i].start > containing_segment.end)
+        break;  // this segment sticks completely out from containing one
+
+      if (segments[i].start > containing_segment.start)
+        containing_segment.start = segments[i].start;
+      if (segments[i].end < containing_segment.end)
+        containing_segment.end = segments[i].end;
     }
     points.push_back(containing_segment.end);
-
-    // we arrived to the first segment which sticks out from the containing
-    // case 1: it's partially under current => skip it
-    // case 2: it's completely out of current => use it as new containing
-    // segment
-    if (segments[i].start <= containing_segment.end) {
-      i++;
-    }
   }
   return points;
 }
@@ -134,19 +132,23 @@ void TestTwoSegments() {
 }
 
 void TestThreeSegments() {
-  vector<Segment> a{{1, 6}, {2, 5}, {3, 4}};
-  AssertEqual(optimal_points(a).size(), 1, "Three one in another");
+  vector<Segment> x;
+  x = {{1, 6}, {1, 6}, {1, 6}};
+  AssertEqual(optimal_points(x).size(), 1, "Three equal");
 
-  vector<Segment> b{{2, 5}, {1, 6}, {3, 4}};
-  AssertEqual(optimal_points(b).size(), 1, "Three one in another unsorted");
+  x = {{1, 6}, {2, 5}, {3, 4}};
+  AssertEqual(optimal_points(x).size(), 1, "Three one in another");
 
-  vector<Segment> c{{2, 5}, {3, 7}, {4, 5}};
-  AssertEqual(optimal_points(c).size(), 1,
+  x = {{2, 5}, {1, 6}, {3, 4}};
+  AssertEqual(optimal_points(x).size(), 1, "Three one in another unsorted");
+
+  x = {{2, 5}, {3, 7}, {4, 5}};
+  AssertEqual(optimal_points(x).size(), 1,
               "Three segments, second sticks out and third in second");
 
-  vector<Segment> d{{2, 4}, {3, 7}, {5, 6}};
+  x = {{2, 4}, {3, 7}, {5, 6}};
   AssertEqual(
-      optimal_points(d).size(), 1,
+      optimal_points(x).size(), 2,
       "Three segments, second sticks out and third in second but out of first");
 }
 
@@ -159,7 +161,7 @@ void RunAllTests() {
 }
 
 int main() {
-  RunAllTests();
+  // RunAllTests();
 
   int n;
   std::cin >> n;
