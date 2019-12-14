@@ -150,6 +150,13 @@ void TestThreeSegments() {
   AssertEqual(
       optimal_points(x).size(), 2,
       "Three segments, second sticks out and third in second but out of first");
+
+  x = {{1, 2}, {2, 3}, {3, 4}};
+  AssertEqual(optimal_points(x).size(), 2,
+              "Three segments, one by one, touching each other");
+
+  x = {{1, 2}, {3, 4}, {5, 6}};
+  AssertEqual(optimal_points(x).size(), 3, "Three separate segments");
 }
 
 void RunAllTests() {
@@ -161,7 +168,7 @@ void RunAllTests() {
 }
 
 int main() {
-  // RunAllTests();
+  RunAllTests();
 
   int n;
   std::cin >> n;
